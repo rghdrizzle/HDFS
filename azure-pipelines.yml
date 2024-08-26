@@ -1,0 +1,12 @@
+trigger:
+- main
+
+pool:
+    vmImage: "ubuntu-latest"
+
+stages:
+- stage: Build
+  jobs:
+   - job: BuildGo_exe
+     steps: 
+     - script: make build
