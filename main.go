@@ -9,7 +9,7 @@ import (
 func main(){
 	tcpOpts := p2p.TCPTransportOpts{
 		ListenAddr: ":3333",
-		Decoder: p2p.GOBDecoder{},
+		Decoder: p2p.DefaultDecoder{},
 		HandShakeFunc: p2p.NOPHandshakeFunc,
 	}
 	tr := p2p.NewTCPTransport(tcpOpts)
