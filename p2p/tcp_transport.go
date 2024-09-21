@@ -17,6 +17,7 @@ type TCPTransportOpts struct{
 	ListenAddr string
 	Decoder Decoder
 	HandShakeFunc HandShakeFunc
+	OnPeer func(Peer)error
 }
 
 type TCPTransport struct{
@@ -78,12 +79,23 @@ func (t *TCPTransport) acceptLoop(){
 }
 type temp struct{}
 func (t *TCPTransport) handleConn(conn net.Conn){
+	var err error
+	defer func ()  {
+		fmt.Println("Dropping peer connection:",err)
+		conn.Close()	
+	}()
 	peer := NewTCPPeer(conn , true)
 	fmt.Printf("New incoming connection:%v\n",peer)
-	if err:= t.HandShakeFunc(peer); err!=nil{
+	if err = t.HandShakeFunc(peer); err!=nil{
 		conn.Close()
 		fmt.Printf("TCP handshake error: %s\n",err)
 		return
+	}
+
+	if t.OnPeer!=nil{
+		if err = t.OnPeer(peer); err!=nil{
+			return
+		}
 	}
 	
 	rpc := RPC{}
@@ -91,7 +103,8 @@ func (t *TCPTransport) handleConn(conn net.Conn){
 	for{
 		if err :=t.Decoder.Decode(conn,&rpc); err!=nil{
 			fmt.Printf("TCP error: %s\n",err)
-			continue
+			return
+			//continue
 		}
 		rpc.From = conn.RemoteAddr()
 		t.rpcch <- rpc
