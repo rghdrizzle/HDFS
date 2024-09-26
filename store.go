@@ -2,11 +2,27 @@ package main
 
 import (
 	//"fmt"
+	"crypto/sha1"
+	"encoding/hex"
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
+func CASpathTransformFunc( key string ) string{
+	hash := sha1.Sum([]byte(key)) // [20]bytes => to a slice([]byte) by doing => [:]
+	hashString := hex.EncodeToString(hash[:])
+
+	blockSize := 5
+	sliceLength := len(hashString) / blockSize
+	paths := make([]string, sliceLength)
+	for i:=0;i<sliceLength;i++{
+		from, to := i*blockSize, (i*blockSize)+blockSize
+		paths[i]= hashString[from:to]
+	}
+	return strings.Join(paths,"/")
+}
 
 type PathTransformFromFunc func(string) string
 type StoreOpts struct {
