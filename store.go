@@ -9,7 +9,9 @@ import (
 	"os"
 	"strings"
 )
-
+//CASpathTransformFunc is a function which converts the key to a hash path so that it follows content-addressable storage system
+// The function computes the sha1 for the key and then converts that to a hexadecimal string. The hexadecimal string is then broken down to 5 parts which is then joined together to create a hased path.
+// example:  3c4df/ead25/99fb1/00c3c/76053/d04ca/81af6/4ab70
 func CASpathTransformFunc( key string ) string{
 	hash := sha1.Sum([]byte(key)) // [20]bytes => to a slice([]byte) by doing => [:]
 	hashString := hex.EncodeToString(hash[:])

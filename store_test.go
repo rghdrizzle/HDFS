@@ -2,17 +2,20 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"testing"
 )
 func TestPathTransformFunc(t *testing.T){
 	key:= "testingtransfromfunc"
 	pathname := CASpathTransformFunc(key)
-	fmt.Println(pathname)
+	expectedPath := "3c4df/ead25/99fb1/00c3c/76053/d04ca/81af6/4ab70"
+	if pathname != expectedPath{
+		t.Errorf("Error: want: %s, got: %s",expectedPath,pathname)
+	}
 }
 func TestStore(t *testing.T){
 	opts := StoreOpts{
-		PathTransformFromFunc: DefaultTransformFunc,
+		PathTransformFromFunc: CASpathTransformFunc,
 	}
 	s := NewStore(opts)
 	data := bytes.NewReader([]byte("some file"))
