@@ -4,10 +4,12 @@ import (
 	//"fmt"
 	// "bytes"
 	// "crypto/md5"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -30,7 +32,7 @@ func CASpathTransformFunc( key string ) PathKey{
 	
 	return PathKey{
 		PathName: strings.Join(paths,"/"),
-		Original: hashString,
+		Filename: hashString,
 		}
 }
 
@@ -41,13 +43,19 @@ type StoreOpts struct {
 
 type PathKey struct{
 	PathName string
-	Original string
+	Filename string
 }
 
-func (p PathKey) Filename() string{
-	return fmt.Sprintf("%s/%s",p.PathName,p.Original)
+func (p PathKey) FullPath() string{
+	return fmt.Sprintf("%s/%s",p.PathName,p.Filename)
 }
-
+func (p PathKey) FirstFileName() string{
+	path := strings.Split(p.PathName,"/")
+	if len(path)==0{
+		return ""
+	}
+	return path[0]
+}
 var DefaultTransformFunc = func(key string) string {
 	return key
 }
@@ -62,6 +70,38 @@ func NewStore(opts StoreOpts) *Store{
 		StoreOpts: opts,
 	}
 }
+func (s *Store) Has(key string) bool{
+	PathKey := s.PathTransformFromFunc(key)
+	_,err := os.Stat(PathKey.FullPath())
+	if err== fs.ErrNotExist{
+		return false
+	}
+	return true
+}
+
+func (s *Store) Delete(key string) error{
+	PathKey := s.PathTransformFromFunc(key)
+	defer func(){
+		log.Printf("File [%s] deleted from the disk",PathKey.Filename)
+	}()
+	err := os.RemoveAll(PathKey.FirstFileName())
+	return err
+}
+
+func (s *Store) Read(key string) (io.Reader,error){
+	f,err:= s.ReadStream(key)
+	if err!=nil{
+		return nil,err
+	}
+	defer f.Close()
+	buf := new(bytes.Buffer)
+	_,err = io.Copy(buf,f)
+	return buf,err
+}
+func (s *Store) ReadStream(key string) (io.ReadCloser,error){
+	PathKey := s.PathTransformFromFunc(key)
+	return  os.Open(PathKey.FullPath())
+}
 
 func (s *Store) WriteStream(key string, r io.Reader) error{
 	pathKey := s.PathTransformFromFunc(key)
@@ -72,15 +112,14 @@ func (s *Store) WriteStream(key string, r io.Reader) error{
 	// io.Copy(buf,r)
 	// filenameBytes := md5.Sum(buf.Bytes())
 	// filename:=hex.EncodeToString(filenameBytes[:])
-	filename:= pathKey.Filename()
+	filename:= pathKey.FullPath()
 	pathAndFilename := filename
 	f,err := os.Create(pathAndFilename)
 	if err!=nil{
 		return err
 	}
-	n , err := io.Copy(f,r) // The reason why we did not do io.Copy(f,r) is because the reader r has already been exhausted 
-	//i.e if r completed reading already then if u use it again it will return something empty 
-	//which is why we used the buffer which copied the contents in reader r
+	defer f.Close()
+	n , err := io.Copy(f,r) 
 	log.Printf("Written %d bytes to disk %s:",n,pathAndFilename)
 	return nil
 
