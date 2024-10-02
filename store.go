@@ -14,7 +14,7 @@ import (
 	"os"
 	"strings"
 )
-
+const RootDefaultFolderName = "drizzleNet"
 //CASpathTransformFunc is a function which converts the key to a hash path so that it follows content-addressable storage system
 // The function computes the sha1 for the key and then converts that to a hexadecimal string. The hexadecimal string is then broken down to 5 parts which is then joined together to create a hased path.
 // example:  3c4df/ead25/99fb1/00c3c/76053/d04ca/81af6/4ab70
@@ -38,6 +38,8 @@ func CASpathTransformFunc( key string ) PathKey{
 
 type PathTransformFromFunc func(string) PathKey
 type StoreOpts struct {
+	//Root is the folder name of the root which is the root directory which contains files
+	Root string
 	PathTransformFromFunc PathTransformFromFunc
 }
 
@@ -56,8 +58,11 @@ func (p PathKey) FirstFileName() string{
 	}
 	return path[0]
 }
-var DefaultTransformFunc = func(key string) string {
-	return key
+var DefaultTransformFunc = func(key string) PathKey {
+	return PathKey{
+		PathName: key,
+		Filename: key,
+	}
 }
 
 
@@ -66,13 +71,20 @@ type Store struct {
 }
 
 func NewStore(opts StoreOpts) *Store{
+	if opts.PathTransformFromFunc == nil{
+		opts.PathTransformFromFunc = DefaultTransformFunc
+	}
+	if len(opts.Root)==0{
+		opts.Root = RootDefaultFolderName
+	}
 	return &Store{
 		StoreOpts: opts,
 	}
 }
 func (s *Store) Has(key string) bool{
 	PathKey := s.PathTransformFromFunc(key)
-	_,err := os.Stat(PathKey.FullPath())
+	fullPathWithRoot := fmt.Sprintf("%s/%s",s.Root,PathKey.FullPath())
+	_,err := os.Stat(fullPathWithRoot)
 	if err== fs.ErrNotExist{
 		return false
 	}
@@ -84,7 +96,9 @@ func (s *Store) Delete(key string) error{
 	defer func(){
 		log.Printf("File [%s] deleted from the disk",PathKey.Filename)
 	}()
-	err := os.RemoveAll(PathKey.FirstFileName())
+
+	firstFileNameWithRoot := fmt.Sprintf("%s/%s",s.Root,PathKey.FirstFileName())
+	err := os.RemoveAll(firstFileNameWithRoot)
 	return err
 }
 
@@ -93,19 +107,22 @@ func (s *Store) Read(key string) (io.Reader,error){
 	if err!=nil{
 		return nil,err
 	}
-	defer f.Close()
+	defer f.Close() 
+
 	buf := new(bytes.Buffer)
 	_,err = io.Copy(buf,f)
 	return buf,err
 }
-func (s *Store) ReadStream(key string) (io.ReadCloser,error){
+func (s *Store) ReadStream(key string) (io.ReadCloser,error){ //io.ReadCloser is similar to a file returned by os pkg and using readCloser we will be able to close the opened file
 	PathKey := s.PathTransformFromFunc(key)
-	return  os.Open(PathKey.FullPath())
+	pathNameWithRoot := fmt.Sprintf("%s/%s",s.Root, PathKey.FullPath())
+	return  os.Open(pathNameWithRoot)
 }
 
 func (s *Store) WriteStream(key string, r io.Reader) error{
 	pathKey := s.PathTransformFromFunc(key)
-	if err:= os.MkdirAll(pathKey.PathName,os.ModePerm); err!=nil{
+	pathNameWithRoot := fmt.Sprintf("%s/%s",s.Root, pathKey.PathName)
+	if err:= os.MkdirAll(pathNameWithRoot,os.ModePerm); err!=nil{
 		return err
 	}
 	// buf := new(bytes.Buffer)
@@ -113,14 +130,14 @@ func (s *Store) WriteStream(key string, r io.Reader) error{
 	// filenameBytes := md5.Sum(buf.Bytes())
 	// filename:=hex.EncodeToString(filenameBytes[:])
 	filename:= pathKey.FullPath()
-	pathAndFilename := filename
-	f,err := os.Create(pathAndFilename)
+	fullPathWithRoot := fmt.Sprintf("%s/%s",s.Root, filename)
+	f,err := os.Create(fullPathWithRoot)
 	if err!=nil{
 		return err
 	}
 	defer f.Close()
 	n , err := io.Copy(f,r) 
-	log.Printf("Written %d bytes to disk %s:",n,pathAndFilename)
+	log.Printf("Written %d bytes to disk %s:",n,fullPathWithRoot)
 	return nil
 
 

@@ -32,6 +32,9 @@ func TestStore(t *testing.T){
 	if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
 		t.Error(err)
 	}
+	if ok:=s.Has(key); !ok{
+		t.Errorf("Expected key %s missing:",key)
+	}
 
 	r , err := s.Read(key)
 	if err!=nil{
@@ -41,6 +44,7 @@ func TestStore(t *testing.T){
 	if string(b) != string(data){
 		t.Errorf("want %s, got %s",data,b)
 	}
+	fmt.Println(b)
 	s.Delete(key)
 }
 
@@ -49,7 +53,7 @@ func TestStoreDeleteKey(t *testing.T) {
 		PathTransformFromFunc: CASpathTransformFunc,
 	}
 	s := NewStore(opts)
-	key := "hello_world2"
+	key := "hello_world"
 	data := []byte("hello world this is a storage system")
 	if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
 		t.Error(err)
