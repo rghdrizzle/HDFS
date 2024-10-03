@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-
-	//"fmt"
 	"testing"
 )
 func TestPathTransformFunc(t *testing.T){
@@ -23,29 +21,37 @@ func TestPathTransformFunc(t *testing.T){
 	}
 }
 func TestStore(t *testing.T){
-	opts := StoreOpts{
-		PathTransformFromFunc: CASpathTransformFunc,
-	}
-	s := NewStore(opts)
-	key := "hello_world"
-	data := []byte("hello world this is a storage system")
-	if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
-		t.Error(err)
-	}
-	if ok:=s.Has(key); !ok{
-		t.Errorf("Expected key %s missing:",key)
-	}
 
-	r , err := s.Read(key)
-	if err!=nil{
-		t.Error(err)
+	s := newStore()
+	defer teardown(t,s)
+	
+	for i:=range(50){
+		key := fmt.Sprintf("hello_world%d",i)
+		data := []byte("hello world this is a storage system")
+		if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
+			t.Error(err)
+		}
+		if ok:=s.Has(key); !ok{
+			t.Errorf("Expected key %s missing:",key)
+		}
+
+		r , err := s.Read(key)
+		if err!=nil{
+			t.Error(err)
+		}
+		b,_ := io.ReadAll(r)
+		if string(b) != string(data){
+			t.Errorf("want %s, got %s",data,b)
+		}
+		fmt.Println(b)
+		if err := s.Delete(key);err!=nil{
+			t.Error(err)
+		}
+		if ok:=s.Has(key);!ok{
+			t.Errorf("Expected to not have key %s",key)
+		}
 	}
-	b,_ := io.ReadAll(r)
-	if string(b) != string(data){
-		t.Errorf("want %s, got %s",data,b)
-	}
-	fmt.Println(b)
-	s.Delete(key)
+	
 }
 
 func TestStoreDeleteKey(t *testing.T) {
@@ -62,4 +68,17 @@ func TestStoreDeleteKey(t *testing.T) {
 		t.Error(err)
 	}
 
+}
+
+func newStore() *Store{
+	opts := StoreOpts{
+		PathTransformFromFunc: CASpathTransformFunc,
+	}
+	return NewStore(opts)
+}
+
+func teardown(t *testing.T,s *Store){
+	if err:=s.Clear(); err!=nil{
+		t.Error(err)
+	}
 }

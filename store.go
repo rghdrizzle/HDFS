@@ -142,3 +142,6 @@ func (s *Store) WriteStream(key string, r io.Reader) error{
 
 
 }
+func (s *Store) Clear()error{
+	return os.RemoveAll(s.Root)
+}
