@@ -7,9 +7,10 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
-	"io/fs"
+	//"io/fs"
 	"log"
 	"os"
 	"strings"
@@ -70,6 +71,10 @@ type Store struct {
 	StoreOpts
 }
 
+func (s *Store) Write(key string, r io.Reader)error{
+	return s.writeStream(key,r)
+}
+
 func NewStore(opts StoreOpts) *Store{
 	if opts.PathTransformFromFunc == nil{
 		opts.PathTransformFromFunc = DefaultTransformFunc
@@ -85,10 +90,7 @@ func (s *Store) Has(key string) bool{
 	PathKey := s.PathTransformFromFunc(key)
 	fullPathWithRoot := fmt.Sprintf("%s/%s",s.Root,PathKey.FullPath())
 	_,err := os.Stat(fullPathWithRoot)
-	if err== fs.ErrNotExist{
-		return false
-	}
-	return true
+	return !errors.Is(err,os.ErrNotExist)
 }
 
 func (s *Store) Delete(key string) error{
@@ -103,7 +105,7 @@ func (s *Store) Delete(key string) error{
 }
 
 func (s *Store) Read(key string) (io.Reader,error){
-	f,err:= s.ReadStream(key)
+	f,err:= s.readStream(key)
 	if err!=nil{
 		return nil,err
 	}
@@ -113,13 +115,13 @@ func (s *Store) Read(key string) (io.Reader,error){
 	_,err = io.Copy(buf,f)
 	return buf,err
 }
-func (s *Store) ReadStream(key string) (io.ReadCloser,error){ //io.ReadCloser is similar to a file returned by os pkg and using readCloser we will be able to close the opened file
+func (s *Store) readStream(key string) (io.ReadCloser,error){ //io.ReadCloser is similar to a file returned by os pkg and using readCloser we will be able to close the opened file
 	PathKey := s.PathTransformFromFunc(key)
 	pathNameWithRoot := fmt.Sprintf("%s/%s",s.Root, PathKey.FullPath())
 	return  os.Open(pathNameWithRoot)
 }
 
-func (s *Store) WriteStream(key string, r io.Reader) error{
+func (s *Store) writeStream(key string, r io.Reader) error{
 	pathKey := s.PathTransformFromFunc(key)
 	pathNameWithRoot := fmt.Sprintf("%s/%s",s.Root, pathKey.PathName)
 	if err:= os.MkdirAll(pathNameWithRoot,os.ModePerm); err!=nil{

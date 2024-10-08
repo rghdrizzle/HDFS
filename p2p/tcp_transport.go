@@ -2,9 +2,11 @@ package p2p
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 )
+
 //TCPPeer represents the remote node established over the tcp connection.
 type TCPPeer struct{
 	// conn is the underlying connection of the peer
@@ -60,8 +62,8 @@ func (t *TCPTransport) ListenAndAccept() error{
 		return err
 	}
 	fmt.Println("Listening....")
-	go t.acceptLoop()
-	
+	go t.acceptLoop()// to prevent blocking of the server ( reason for using goroutine here )
+	log.Printf("TCP transport listening on:%s\n",t.ListenAddr)
 	return nil
 }
 

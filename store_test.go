@@ -28,7 +28,7 @@ func TestStore(t *testing.T){
 	for i:=range(50){
 		key := fmt.Sprintf("hello_world%d",i)
 		data := []byte("hello world this is a storage system")
-		if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
+		if err := s.writeStream(key,bytes.NewReader(data)); err!=nil{
 			t.Error(err)
 		}
 		if ok:=s.Has(key); !ok{
@@ -47,7 +47,7 @@ func TestStore(t *testing.T){
 		if err := s.Delete(key);err!=nil{
 			t.Error(err)
 		}
-		if ok:=s.Has(key);!ok{
+		if ok:=s.Has(key);ok{
 			t.Errorf("Expected to not have key %s",key)
 		}
 	}
@@ -61,7 +61,7 @@ func TestStoreDeleteKey(t *testing.T) {
 	s := NewStore(opts)
 	key := "hello_world"
 	data := []byte("hello world this is a storage system")
-	if err := s.WriteStream(key,bytes.NewReader(data)); err!=nil{
+	if err := s.writeStream(key,bytes.NewReader(data)); err!=nil{
 		t.Error(err)
 	}
 	if err:=s.Delete(key); err!=nil{
