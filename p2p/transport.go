@@ -8,6 +8,7 @@ type Peer interface{
 
 // Transport is an object that handles the communication between multiple nodes in the net
 type Transport interface{
+	Dial(string) error
 	ListenAndAccept() error
 	Consume()<-chan RPC
 	Close() error

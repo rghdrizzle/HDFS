@@ -3,6 +3,7 @@ package main
 import (
 	// "io"
 	"fmt"
+	"log"
 	"rghdrizzle/hdfs/p2p"
 )
 
@@ -10,6 +11,7 @@ type FileServerOpts struct {
 	StorageRoot           string
 	PathTransformFromFunc PathTransformFromFunc
 	Transport             p2p.Transport
+	BootstrapNodes		  []string
 }
 type FileServer struct {
 	FileServerOpts 
@@ -28,11 +30,22 @@ func NewFileServer(opts FileServerOpts) *FileServer {
 		quitch: make(chan struct{}),
 	}
 }
+func (fs *FileServer) BootstrapNetwork() error{
+	for _, addr := range(fs.BootstrapNodes){
+		go func(addr string){
+			if err:= fs.Transport.Dial(addr); err!=nil{
+				log.Println("Dial error:",err)
+			}
+		}(addr)
+	}
+	return nil
+}
 
 func (fs *FileServer) Start() error {
 	if err:= fs.FileServerOpts.Transport.ListenAndAccept();err!=nil{
 		return err
 	}
+	fs.BootstrapNetwork()
 	fs.loop()
 	return nil
 }

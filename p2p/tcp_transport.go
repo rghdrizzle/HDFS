@@ -81,20 +81,20 @@ func (t *TCPTransport) acceptLoop(){
 		if err!=nil{
 			fmt.Printf("TCP Accept failure %s",err)
 		}
-		go t.handleConn(conn) // we use a goroutine here to prevent a delay in the connection because handling will consume time 
+		go t.handleConn(conn,false) // we use a goroutine here to prevent a delay in the connection because handling will consume time 
 		//and when one client is handling the other has to wait for the loop to end so they can accept in another thread
 		//if we use a go routine then handling will be done concurrently so the other clients can also connect
 
 	}
 }
 type temp struct{}
-func (t *TCPTransport) handleConn(conn net.Conn){
+func (t *TCPTransport) handleConn(conn net.Conn,outbound bool){
 	var err error
 	defer func ()  {
 		fmt.Println("Dropping peer connection:",err)
 		conn.Close()	
 	}()
-	peer := NewTCPPeer(conn , true)
+	peer := NewTCPPeer(conn , outbound)
 	fmt.Printf("New incoming connection:%v\n",peer)
 	if err = t.HandShakeFunc(peer); err!=nil{
 		conn.Close()
@@ -122,4 +122,14 @@ func (t *TCPTransport) handleConn(conn net.Conn){
 	}
 	
 	
+}
+//Dial implements the transport interface which dials to a specific address ( it uses the standard Dial function from the net pkg and more)
+func (t *TCPTransport) Dial(addr string) error{
+	conn ,err := net.Dial("tcp",addr)
+	if err!=nil{
+		return err
+	}
+	go t.handleConn(conn,true)
+
+	return nil
 }
