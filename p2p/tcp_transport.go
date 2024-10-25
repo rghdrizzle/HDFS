@@ -133,3 +133,9 @@ func (t *TCPTransport) Dial(addr string) error{
 
 	return nil
 }
+
+//RemoteAddr implements the peer interface and will return a net.Addr (a remote address of the connection of the peer)
+func (p *TCPPeer) RemoteAddr() net.Addr{
+		return p.conn.RemoteAddr()
+
+}

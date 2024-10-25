@@ -61,8 +61,12 @@ func (fs *FileServer) Stop(){
 	close(fs.quitch)
 }
 
-func (fs *FileServer) OnPeer(){
-		
+func (fs *FileServer) OnPeer(p p2p.Peer)error{
+	fs.peerLock.Lock()
+	defer fs.peerLock.Unlock()
+	fs.peers[p.RemoteAddr().String()]= p
+	log.Printf("Connected to remote %s",p)
+	return nil
 }
 
 
