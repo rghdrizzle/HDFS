@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"rghdrizzle/hdfs/p2p"
 	//"time"
@@ -22,6 +23,8 @@ func makeServer(listenAddr string,nodes ...string) *FileServer{ // ...string is 
 		BootstrapNodes: nodes,
 	}
 	s := NewFileServer(fileServerOpts)
+
+	tcpTransport.OnPeer = s.OnPeer
 	return s
 }
 
@@ -34,6 +37,10 @@ func main(){
 		
 	}()
 	s2.Start()
+
+	data := bytes.NewReader([]byte("large file"))
+
+	s2.StoreData("key",data)
 	// go func(){
 	// 	time.Sleep(time.Second * 3)
 	// 	s.Stop()

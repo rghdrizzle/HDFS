@@ -2,7 +2,10 @@ package main
 
 import (
 	// "io"
+	//"bytes"
+	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"rghdrizzle/hdfs/p2p"
 	"sync"
@@ -23,6 +26,8 @@ type FileServer struct {
 	quitch chan struct{}
 }
 
+
+
 func NewFileServer(opts FileServerOpts) *FileServer {
 	storageOpts := StoreOpts{
 		Root:                  opts.StorageRoot,
@@ -35,6 +40,32 @@ func NewFileServer(opts FileServerOpts) *FileServer {
 		peers: make(map[string]p2p.Peer),
 	}
 }
+
+type PayLoad struct{
+	Key string
+	Data []byte
+
+}
+func (fs *FileServer) broadcast(p PayLoad) error{
+	peers:= []io.Writer{}
+
+	for _,peer := range(fs.peers){
+		peers= append(peers,peer)
+	}
+	mw := io.MultiWriter(peers...)
+	return gob.NewEncoder(mw).Encode(p)
+	
+}
+func (fs  *FileServer) StoreData(key string, r io.Reader) error{
+	// Storing file to the disk
+	// then we broadcast the file to other known peers
+	if err:= fs.store.Write(key,r);err!=nil{
+		return nil
+	}
+
+	return nil
+}
+
 
 func (fs *FileServer) BootstrapNetwork() error{
 
@@ -65,7 +96,7 @@ func (fs *FileServer) OnPeer(p p2p.Peer)error{
 	fs.peerLock.Lock()
 	defer fs.peerLock.Unlock()
 	fs.peers[p.RemoteAddr().String()]= p
-	log.Printf("Connected to remote %s",p)
+	log.Printf("Connected to remote %s",p.RemoteAddr().String())
 	return nil
 }
 
