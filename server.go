@@ -3,6 +3,7 @@ package main
 import (
 	// "io"
 	//"bytes"
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -46,7 +47,7 @@ type PayLoad struct{
 	Data []byte
 
 }
-func (fs *FileServer) broadcast(p PayLoad) error{
+func (fs *FileServer) broadcast(p *PayLoad) error{
 	peers:= []io.Writer{}
 
 	for _,peer := range(fs.peers){
@@ -60,10 +61,22 @@ func (fs  *FileServer) StoreData(key string, r io.Reader) error{
 	// Storing file to the disk
 	// then we broadcast the file to other known peers
 	if err:= fs.store.Write(key,r);err!=nil{
-		return nil
+		return err
+	}
+	buf := new(bytes.Buffer)
+
+	_, err:= io.Copy(buf,r)
+	if err!=nil{
+		return err
+	}
+	p := &PayLoad{
+		Key: key,
+		Data: buf.Bytes(),
 	}
 
-	return nil
+	fmt.Println(buf.Bytes())
+
+	return fs.broadcast(p)
 }
 
 

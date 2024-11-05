@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+
 	"log"
 	"rghdrizzle/hdfs/p2p"
-	//"time"
+	"time"
+	"strings"
 )
 
 func makeServer(listenAddr string,nodes ...string) *FileServer{ // ...string is used to recieve n number of arguments of type string ( n can be 0 as well )
@@ -17,7 +19,7 @@ func makeServer(listenAddr string,nodes ...string) *FileServer{ // ...string is 
 	}
 	tcpTransport := p2p.NewTCPTransport(tcpTransportOpts)
 	fileServerOpts := FileServerOpts	{
-		StorageRoot: listenAddr+"_network",
+		StorageRoot: strings.Replace(listenAddr, ":", "_", -1)+"_network", // colon will not be considered to be a valid directory name in windows so we replace the colon here, if we are storing the files in a linux based system then simply having ":3000_network" should be fine
 		PathTransformFromFunc: CASpathTransformFunc,
 		Transport: tcpTransport,
 		BootstrapNodes: nodes,
@@ -36,11 +38,14 @@ func main(){
 		log.Fatal(s1.Start())	
 		
 	}()
-	s2.Start()
+	go s2.Start()
+
+	time.Sleep(1*time.Second)
 
 	data := bytes.NewReader([]byte("large file"))
 
-	s2.StoreData("key",data)
+	s2.StoreData("privatedata",data)
+	select{}
 	// go func(){
 	// 	time.Sleep(time.Second * 3)
 	// 	s.Stop()
