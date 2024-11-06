@@ -2,11 +2,10 @@ package main
 
 import (
 	"bytes"
-
 	"log"
 	"rghdrizzle/hdfs/p2p"
-	"time"
 	"strings"
+	"time"
 )
 
 func makeServer(listenAddr string,nodes ...string) *FileServer{ // ...string is used to recieve n number of arguments of type string ( n can be 0 as well )
@@ -38,9 +37,10 @@ func main(){
 		log.Fatal(s1.Start())	
 		
 	}()
+	time.Sleep(2*time.Second)
 	go s2.Start()
 
-	time.Sleep(1*time.Second)
+	time.Sleep(2*time.Second)
 
 	data := bytes.NewReader([]byte("large file"))
 

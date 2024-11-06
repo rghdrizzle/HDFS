@@ -123,7 +123,13 @@ func (fs *FileServer) loop(){
 	for{
 		select{
 		case msg:= <- fs.Transport.Consume():
-			fmt.Println(msg)
+			fmt.Printf("recev\n")
+			var p PayLoad
+			fmt.Println(msg.Payload)
+			if err:=gob.NewDecoder(bytes.NewReader(msg.Payload)).Decode(&p);err!=nil{
+				log.Fatal(err)
+			}
+			fmt.Printf("%+v\n",p)
 		case <-fs.quitch:
 			return 
 		}
